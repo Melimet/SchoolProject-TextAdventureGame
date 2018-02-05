@@ -1,5 +1,5 @@
 # SchoolProjects
-Text adventure game
+Text adventure game - Abandoned Hospital Simulator 2017 - A text adventure game utilizing Python and HeidiSQL
 
 
 A text adventure game me and my group made during our first semester in Metropolia. 
