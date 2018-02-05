@@ -1,0 +1,157 @@
+-- --------------------------------------------------------
+-- Verkkotietokone:              127.0.0.1
+-- Palvelinversio:               10.2.8-MariaDB - mariadb.org binary distribution
+-- Server OS:                    Win64
+-- HeidiSQL Versio:              9.4.0.5125
+-- --------------------------------------------------------
+
+/*!40101 SET @OLD_CHARACTER_SET_CLIENT=@@CHARACTER_SET_CLIENT */;
+/*!40101 SET NAMES utf8 */;
+/*!50503 SET NAMES utf8mb4 */;
+/*!40014 SET @OLD_FOREIGN_KEY_CHECKS=@@FOREIGN_KEY_CHECKS, FOREIGN_KEY_CHECKS=0 */;
+/*!40101 SET @OLD_SQL_MODE=@@SQL_MODE, SQL_MODE='NO_AUTO_VALUE_ON_ZERO' */;
+
+
+-- Dumping database structure for ahs
+CREATE DATABASE IF NOT EXISTS `ahs` /*!40100 DEFAULT CHARACTER SET latin1 */;
+USE `ahs`;
+
+-- Dumping structure for taulu ahs.direction
+CREATE TABLE IF NOT EXISTS `direction` (
+  `DirectionID` varchar(40) NOT NULL,
+  `Description` varchar(400) DEFAULT NULL,
+  PRIMARY KEY (`DirectionID`)
+) ENGINE=InnoDB DEFAULT CHARSET=latin1;
+
+-- Dumping data for table ahs.direction: ~7 rows (suunnilleen)
+/*!40000 ALTER TABLE `direction` DISABLE KEYS */;
+INSERT INTO `direction` (`DirectionID`, `Description`) VALUES
+	('d', 'Down'),
+	('e', 'East'),
+	('k', 'Kill'),
+	('n', 'North'),
+	('s', 'South'),
+	('u', 'Up'),
+	('w', 'West');
+/*!40000 ALTER TABLE `direction` ENABLE KEYS */;
+
+-- Dumping structure for taulu ahs.location
+CREATE TABLE IF NOT EXISTS `location` (
+  `LocationID` varchar(40) NOT NULL,
+  `Description` varchar(40) DEFAULT NULL,
+  `Details` varchar(4000) DEFAULT NULL,
+  PRIMARY KEY (`LocationID`)
+) ENGINE=InnoDB DEFAULT CHARSET=latin1;
+
+-- Dumping data for table ahs.location: ~12 rows (suunnilleen)
+/*!40000 ALTER TABLE `location` DISABLE KEYS */;
+INSERT INTO `location` (`LocationID`, `Description`, `Details`) VALUES
+	('Closet', 'Janitor’s Closet', 'You are in a Janitor\'s closet, which is full of cleaning equipment and other items. There is a case in the corner marked "Elevator Repair Kit".'),
+	('Hallway1', '3rd Floor: Hallway', 'You\'ve entered a hallway. The hallway is quite empty, only a few drawers lying around. \r\nTo your north there is a door that leads to an emergency staircase. Towards west there is a similiar room to that where you woke up in.\r\nHeading east there is an elevator.'),
+	('Hallway2', '2nd Floor: Hallway', 'You are in the second floor hallway. The walls are moldy and the air humid. To your north is a door leading to the emergency stairwell, to the east is the elevator and to the south is a door marked "Janitor\'s Closet".'),
+	('House', 'Player’s House', 'You are filled with determination and you punch the dragon really hard. As the dragon is dying it lets out a screech that sounds like Darude - Sandstorm. Now you realise that this has been a dream and that you have to wake up and turn off the alarm clock. You wake up in your apartment and turn off the alarm. You need to get ready quickly, because you are already going to be late in your shift at Alepa, because you thought it would be a great idea to graduate as an arts major instead of an ICT engineer. Your clothes are on a chair next to your bed. '),
+	('LowerElevator', '2ndElevator', 'You are inside the elevator on 2nd floor. You can only go up, because the lower floors are flooded'),
+	('LowerStairwell', '2rd Floor: Stairwell', 'You are in the emergency stairwell leading to the third floor. You can not go any lower since it is flooded. There is an emergency crowbar on the wall.'),
+	('Player', 'Inventory', NULL),
+	('Roof', 'Hospital roof', 'As you enter the hospital\'s roof you see a massive dragon.'),
+	('Room1', '3rd Floor: Room 1', 'You wake up in a bed in a place that doesn\'t seem to be your home. The room is dark and you can\'t see much. \r\nYou notice a dim light coming through one of the walls. Could it be a window?'),
+	('Room2', '3rd Floor: Room 2', 'There is a man strapped to a bed in the middle of the room. There are some painkillers on the table next to him.'),
+	('UpperElevator', '3rdElevator', 'You are inside the elevator on 3rd floor. You can go up or down.'),
+	('UpperStairwell', '3rd Floor: Stairwell', 'To your surprise the stairs leading to the 4th floor are broken. You are in the 3rd floor of the emergency stairwell.');
+/*!40000 ALTER TABLE `location` ENABLE KEYS */;
+
+-- Dumping structure for taulu ahs.object
+CREATE TABLE IF NOT EXISTS `object` (
+  `ObjectID` varchar(40) NOT NULL,
+  `Description` varchar(400) DEFAULT NULL,
+  `Location` varchar(40) DEFAULT NULL,
+  `RefName` varchar(40) DEFAULT NULL,
+  `Details` varchar(400) DEFAULT NULL,
+  `Available` tinyint(1) DEFAULT NULL,
+  `Takeable` tinyint(1) DEFAULT NULL,
+  PRIMARY KEY (`ObjectID`),
+  KEY `Location` (`Location`),
+  CONSTRAINT `object_ibfk_1` FOREIGN KEY (`Location`) REFERENCES `location` (`LocationID`)
+) ENGINE=InnoDB DEFAULT CHARSET=latin1;
+
+-- Dumping data for table ahs.object: ~16 rows (suunnilleen)
+/*!40000 ALTER TABLE `object` DISABLE KEYS */;
+INSERT INTO `object` (`ObjectID`, `Description`, `Location`, `RefName`, `Details`, `Available`, `Takeable`) VALUES
+	('alarm clock', 'An alarm clock by the bed', 'House', 'alarm', 'It is an old Mickey Mouse alarm clock.', 1, 0),
+	('bucket1', 'A bucket in the Janitor\'s Closet', 'Closet', 'bucket', 'A free bucket and you will not even need to wait in a line for it.', 1, 1),
+	('clothes', 'Player\'s clothes are on a chair near the bed', 'House', 'clothes', 'Jeans, T-shirt and socks', 1, 1),
+	('crowbar', 'An emergency crowbar', 'LowerStairwell', 'crowbar', 'This could be used to break things.', 1, 1),
+	('Dragon', 'An angry dragon', 'Roof', 'Dragon', 'The dragon dragon is enormous in size, breathes fire and has poisonous spikes all over its body. Maybe you should go back inside and hide.', 1, 0),
+	('Drawers', 'Empty drawers', 'Hallway1', 'Drawers', 'The drawers are empty.', 1, 0),
+	('HospitalBed', 'An old-looking hospital bed', 'Room1', 'Bed', 'After looking at the bed in a better lighting you are sure that you don\'t want to spend another night in that bed.', 0, 0),
+	('Man', 'A man in great pain', 'Room2', 'Man', 'The man seems to be in great pain. He begs you to give him something to ease the pain.', 1, 0),
+	('mop1', 'A mop in the Janitor\'s Closet', 'Closet', 'mop', 'An ordinary mop', 1, 1),
+	('Poison', 'Strong poison', 'Room2', 'Poison', 'The poison is extra strong, even a small amount is lethal.', 1, 1),
+	('repair kit', 'A repair kit for the elevator', 'Closet', 'kit', 'The repair kit seems to be easy to use.', 1, 1),
+	('Sedative', 'Strong sedatives', 'Room2', 'Sedatives', 'There is a red triangle marking on the bottle.', 1, 1),
+	('soap', 'A soap in the Janitor\'s Closet', 'Closet', 'soap', 'The bottle is marked "Mäntysuopa"', 1, 1),
+	('Wheelchair', 'A squeaky wheelchair', 'Hallway1', 'Wheelchair', 'The wheelchair\'s wheels squeak when pushed.', 1, 1),
+	('Window1', 'A dirty window', 'Room1', 'Window', 'After closer inspection you\'re sure that it is a window and that it is covered in dirt and vegetation.', 1, 0),
+	('door', 'You open the door and recognise the man behind it. It is the man you saw in the hospital.', 'House', 'door','Somebody is behind the door, you should go open it.',1,0);
+/*!40000 ALTER TABLE `object` ENABLE KEYS */;
+
+-- Dumping structure for taulu ahs.passage
+CREATE TABLE IF NOT EXISTS `passage` (
+  `PassageID` varchar(40) NOT NULL,
+  `Source` varchar(40) DEFAULT NULL,
+  `Destination` varchar(40) DEFAULT NULL,
+  `Direction` varchar(40) DEFAULT NULL,
+  `Locked` tinyint(1) DEFAULT NULL,
+  `Locknote` varchar(400) DEFAULT NULL,
+  PRIMARY KEY (`PassageID`),
+  KEY `Source` (`Source`),
+  KEY `Destination` (`Destination`),
+  KEY `Direction` (`Direction`),
+  CONSTRAINT `passage_ibfk_1` FOREIGN KEY (`Source`) REFERENCES `location` (`LocationID`),
+  CONSTRAINT `passage_ibfk_2` FOREIGN KEY (`Destination`) REFERENCES `location` (`LocationID`),
+  CONSTRAINT `passage_ibfk_3` FOREIGN KEY (`Direction`) REFERENCES `direction` (`DirectionID`)
+) ENGINE=InnoDB DEFAULT CHARSET=latin1;
+
+-- Dumping data for table ahs.passage: ~20 rows (suunnilleen)
+/*!40000 ALTER TABLE `passage` DISABLE KEYS */;
+INSERT INTO `passage` (`PassageID`, `Source`, `Destination`, `Direction`, `Locked`, `Locknote`) VALUES
+	('1', 'Hallway1', 'Room1', 's', 0, NULL),
+	('10', 'Hallway2', 'LowerStairwell', 'n', 0, NULL),
+	('11', 'Hallway2', 'LowerElevator', 'e', 1, 'There seems to be something wrong with the elevator. Maybe you could find an Elevator Repairman\'s kit from somewhere around here?'),
+	('12', 'Closet', 'Hallway2', 'n', 0, NULL),
+	('13', 'LowerStairwell', 'Hallway2', 's', 0, NULL),
+	('14', 'LowerElevator', 'Hallway2', 'w', 0, NULL),
+	('15', 'LowerElevator', 'UpperElevator', 'u', 0, NULL),
+	('16', 'UpperElevator', 'LowerElevator', 'd', 0, NULL),
+	('17', 'UpperElevator', 'Roof', 'u', 0, NULL),
+	('18', 'LowerStairwell', 'UpperStairwell', 'u', 0, NULL),
+	('19', 'UpperStairwell', 'LowerStairwell', 'd', 0, NULL),
+	('2', 'Hallway1', 'Room2', 'w', 0, NULL),
+	('20', 'Roof', 'House', 'k', 0, NULL),
+	('3', 'Hallway1', 'UpperStairwell', 'n', 1, 'The door is barred from the other side.'),
+	('4', 'Hallway1', 'UpperElevator', 'e', 1, 'The elevator is out of order.'),
+	('5', 'Room1', 'Hallway1', 'n', 1, 'It\'s too dark for me to find the door knob.'),
+	('6', 'Room2', 'Hallway1', 'e', 0, NULL),
+	('7', 'UpperStairwell', 'Hallway1', 's', 1, 'The door is barred from this side, but it is too heavy for you to remove it with your bare hands.'),
+	('8', 'UpperElevator', 'Hallway1', 'w', 0, NULL),
+	('9', 'Hallway2', 'Closet', 's', 0, NULL);
+/*!40000 ALTER TABLE `passage` ENABLE KEYS */;
+
+-- Dumping structure for taulu ahs.player
+CREATE TABLE IF NOT EXISTS `player` (
+  `ID` int(11) NOT NULL,
+  `Location` varchar(40) DEFAULT NULL,
+  PRIMARY KEY (`ID`),
+  KEY `Location` (`Location`),
+  CONSTRAINT `player_ibfk_1` FOREIGN KEY (`Location`) REFERENCES `location` (`LocationID`)
+) ENGINE=InnoDB DEFAULT CHARSET=latin1;
+
+-- Dumping data for table ahs.player: ~1 rows (suunnilleen)
+/*!40000 ALTER TABLE `player` DISABLE KEYS */;
+INSERT INTO `player` (`ID`, `Location`) VALUES
+	(1, 'Room1');
+/*!40000 ALTER TABLE `player` ENABLE KEYS */;
+
+/*!40101 SET SQL_MODE=IFNULL(@OLD_SQL_MODE, '') */;
+/*!40014 SET FOREIGN_KEY_CHECKS=IF(@OLD_FOREIGN_KEY_CHECKS IS NULL, 1, @OLD_FOREIGN_KEY_CHECKS) */;
+/*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;
