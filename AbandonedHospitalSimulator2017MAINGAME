@@ -1,0 +1,379 @@
+import mysql.connector
+
+def show_objects():
+    cur = db.cursor()
+    sql = "SELECT RefName, Available = TRUE FROM OBJECT WHERE Location='" + loc + "'"
+    cur.execute(sql)
+    if cur.rowcount>=1:
+        print("You see the following:")
+        for row in cur.fetchall():
+            if row[1]==1:
+                print (" - " + row[0])
+    return
+
+def show_passages():
+    print("The possible directions are:"),
+    cur = db.cursor()
+    sql = "SELECT Description, Locked, Locknote FROM PASSAGE INNER JOIN DIRECTION ON PASSAGE.Direction=DIRECTION.Directionid WHERE Source='" + loc + "'"
+    cur.execute(sql)
+    i = 0;
+    for row in cur.fetchall() :
+        print (row[0], end=' ')
+        i = i+1
+        if row[1]==1:
+            print("("+ row[2] + ")", end=' ')
+        if i < cur.rowcount:
+            print(",", end=' ')
+    print("")
+    return
+def get_target(target):
+    cur = db.cursor()
+    sql = "UPDATE OBJECT SET Location='PLAYER', Available=FALSE WHERE Refname='" + target + "' AND Location='" + loc + "' AND Available=TRUE AND Takeable=TRUE"
+    cur.execute(sql)
+    if cur.rowcount==1:
+        print("You take the " + target + ".")
+    else:
+        print("You can't take the " + target + ".")
+    return cur.rowcount
+
+def drop_target(target, loc): 
+    cur = db.cursor()
+    sql = "UPDATE OBJECT SET Location='" + loc + "', Available=TRUE WHERE Refname='" + target + "'"
+    cur.execute(sql)
+    if cur.rowcount==1:
+        print("You drop the " + target + ".")
+    else:
+        print("You can't drop the " + target + ".")
+    return cur.rowcount
+
+def inventory():
+    cur = db.cursor()
+    sql = "SELECT Description FROM OBJECT WHERE Location='PLAYER'"
+    cur.execute(sql)
+    if cur.rowcount>=1:
+        print("You have the following items:")
+        for row in cur.fetchall() :
+            print (" - " + row[0])
+    else:
+        print("You don't have any items.")
+    return
+
+def position(): #Retrieves location id and prints location details
+    global loc
+    cur = db.cursor()
+    sql = "SELECT Location.LocationID FROM Location, Player WHERE Location.LocationID = Player.Location"
+    cur.execute(sql)
+    loc=cur.fetchone()[0]
+    sql = "SELECT Location.details FROM Location, Player WHERE Location.LocationID = Player.Location" 
+    cur.execute(sql) 
+    locdet=cur.fetchone()[0]
+    print(locdet)
+    return
+    
+def look(target, loc):
+    cur = db.cursor()
+    sql = "SELECT Object.Details FROM OBJECT JOIN Location WHERE Object.Refname='" + target + "' AND Object.Location='" + loc + "'"
+    cur.execute(sql)
+    try:
+        view=cur.fetchone()[0]
+        print(view)
+    except TypeError:
+            print("You dont see anything interesting")
+    return
+def move(loc, direction):
+        destination=loc
+        cur = db.cursor()
+        sql = "SELECT Destination FROM PASSAGE WHERE Direction='" + direction + "' AND Source='" + loc + "' AND LOCKED=0"
+        cur.execute(sql)
+        if cur.rowcount>=1:
+            for row in cur.fetchall():
+                destination = row[0]
+            sql= "UPDATE player SET player.location=(SELECT location.LocationID FROM location WHERE location.locationID='" + destination + "');"
+            cur.execute(sql)
+        else: #fetches locknote if movement failed
+            sql = "SELECT Locknote FROM PASSAGE WHERE Direction='" + direction + "' AND Source='" + loc + "'"
+            cur.execute(sql)
+            if cur.rowcount>=1:
+                locknote=cur.fetchone()[0]
+                print(locknote)
+            destination = loc;
+        return destination
+def use():
+    global crowbaruse
+    global repairkituse
+    cur = db.cursor()
+    sql= "select RefName from object where object.location = 'player' and object.RefName ='" + target + "'"
+    cur.execute(sql)
+    if cur.rowcount>=1:
+        objectname = cur.fetchone()
+        if "crowbar" in str(objectname) and loc=="UpperStairwell" and crowbaruse == 0: #crowbar
+            sql = "update passage set locked = 0 where passage.PassageID = '7' or passage.PassageID = '3';"
+            cur.execute(sql)
+            crowbaruse = 1
+            print("You use the crowbar to open the door. ")
+        elif "kit" in str(objectname)  and loc=="Hallway1" and repairkituse == 0 or "kit" in str(objectname) and loc=="Hallway2" and repairkituse == 0:#repairkit
+            sql ="update passage set locked = 0 where Passage.passageID = 11 or passage.PassageID = 4"
+            cur.execute(sql)
+            repairkituse = 1
+            print("The repair kit's manual is easy to read, because it has the font size of 11 and line spacing made by pressing enter only once. You repair the elevator without breaking a sweat.")
+        elif "crowbar" in str(objectname) and loc!="UpperStairwell" or "kit" in str(objectname) and loc != "Hallway2" or "kit" in str(objectname) and loc !="Hallway1":
+            print("You can't use the " + target + " here.") #If you have the item in your inventory, but can't use it in this room.   
+    else:
+        print("You aren't carrying " + target + " in your inventory")
+    return
+def give():
+    global medicineuse
+    global poisonuse
+    cur = db.cursor()
+    sql= "select RefName from object where object.location = 'player' and object.RefName ='" + target + "'"
+    cur.execute(sql)
+    if cur.rowcount>=1:
+        objectname = cur.fetchone()
+        if "Poison" in str(objectname) and loc =="Roof" and poisonuse == 0:
+            print("The dragon drinks the poison, but nothing happens. Apparently it is immune to poison. I need to come up with something else.")
+            poisonuse = 1
+        elif "Sedative" in str(objectname) and loc =="Room2" and medicineuse == 0:
+            print("You give the man painkillers. He thanks you and hands you a vial of dangerous dragon poison and he says that you're going to need it later.")
+            sql = "update object set location = 'player' where objectid = 'poison'"
+            cur.execute(sql)
+            medicineuse=1
+        else:
+            print("This isn't the time or place to use " + target + ".")
+    else:
+        print("You aren't carrying " + target + " in your inventory")
+    return
+def fall():
+    cur = db.cursor()
+    print("You trip and fall through the floor.")
+    sql = "update player set player.location = 'Hallway2'"
+    cur.execute(sql)
+    sql = "update location set details = 'You have entered a hallway. The hallway is quite empty, only a few drawers lying around. To your north there is a door that leads to an emergency staircase. Towards west there is a similiar room to that where you woke up in. Heading east there is an elevator. There is now a large hole in front of the door leading to one of the rooms.' where locationid = 'Hallway1'"
+    cur.execute(sql)
+    position()
+    return
+def open_window ():
+    cur = db.cursor()
+    sql = "UPDATE PASSAGE SET Locked = FALSE WHERE PassageId = '5'"
+    cur.execute(sql)
+    if cur.rowcount>=1:
+        print("As you open the window you look outside and see that the ground floors of other buildings have flooded. You don't see any signs of life.")
+        sql = "UPDATE LOCATION SET location.details = 'The room is now well lit. The walls of the room used to be white, but now they have turned yellowish. You see a door that leads north. What is this place?' WHERE location.locationID = 'Room1'"
+        cur.execute(sql)
+        sql = "UPDATE OBJECT SET Available = TRUE WHERE ObjectID = 'HospitalBed'"
+        cur.execute(sql)
+        position()
+    return
+def open_door():
+    cur=db.cursor()
+    sql="SELECT Object.Description FROM OBJECT JOIN Location WHERE Object.Refname='" + target + "' AND Object.Location='" + loc + "'"
+    cur.execute(sql)
+    view=cur.fetchone()[0]
+    print(view)
+    return
+#DB CONNECTION
+db = mysql.connector.connect(host="localhost",
+                      user="Player",
+                      passwd="xD",
+                      db="AHS",
+                      buffered=True)
+print("\n"*1000)
+print("Welcome to Abandoned Hospital Simulator 2017!\n Made by Erkka, Mikko and Liisa. \n You can get help by typing in help." + "\n"*5)
+
+loc = "" 
+locdet="" #location details
+action = ""
+position() #character's location
+locknote = ""
+fallamount=0
+target = ""
+crowbaruse = 0
+repairkituse = 0
+medicineuse = 0
+poisonuse = 0
+windowopen = 0
+while action!="end":
+
+    print("")
+    input_string=input("Enter command :").split()
+    if len(input_string)>=1:
+        action = input_string[0].lower()
+    else:
+        action = ""
+    if len(input_string)>=2:
+        target = input_string[len(input_string)-1].lower()
+    # look
+    if (action=="look" or action=="examine" or action=="view"):
+        if target=="":
+            print ("Please enter a target")
+        elif target =="medicine" or target=="sedative" or target=="burana" or target=="painkillers" or target=="sedatives" or target =="pills":
+            target="Sedatives"
+            look(target,loc)
+            target=""
+        else:
+            look(target,loc)
+            target =""
+    #help
+    elif action =="help":
+        show_objects()
+        show_passages()
+        print("Commands that the parser understand are: North, South, East, West, Up, Down, Take, Give, Look, Kill, Use, Open and Hide.")
+    #falling through floor
+    elif action == "east" and loc == "Room2" and fallamount == 0 or action == "e" and loc == "Room2" and fallamount == 0: 
+        fallamount = fallamount + 1
+        fall()
+        
+    # move    
+    elif action=="n" or action=="e" or action=="s" or action=="w" or action=="north" or action=="east" or action=="south" or action=="west" or action=="up" or action=="down" or action=="kill":
+        if action=="north":
+            action="n"
+            newloc = move(loc,action)
+            if loc==newloc:
+                print("You can't move to that direction.");
+            else:
+                loc = newloc
+                position()
+        elif action=="south":
+            action="s"
+            newloc = move(loc,action)
+            if loc==newloc:
+                print("You can't move to that direction.");
+            else:
+                loc = newloc
+                position()
+        elif action=="west":
+                    action="w"
+                    newloc = move(loc,action)
+                    if loc==newloc:
+                        print("You can't move to that direction.");
+                    else:
+                        loc = newloc
+                        position()
+        elif action=="east":
+                    action="e"
+                    newloc = move(loc,action)
+                    if loc==newloc:
+                        print("You can't move to that direction.");
+                    else:
+                        loc = newloc
+                        position()
+            
+        elif action=="kill":
+            action="k"
+            newloc = move(loc,action)
+            if loc==newloc:
+                print("There is nothing to kill.");
+            else:
+                loc = newloc
+                position()
+
+        elif action=="up":
+            action="u"
+            newloc = move(loc,action)
+            if loc==newloc:
+                print("You can't move to that direction.");
+            else:
+                loc = newloc
+                position()
+        elif action=="down":
+            action="d"
+            newloc = move(loc,action)
+            if loc==newloc:
+                print("You can't move to that direction.");
+            else:
+                loc = newloc
+                position()
+        else:
+            newloc = move(loc,action)
+            if loc==newloc:
+                print("You can't move to that direction.");
+            else:
+                loc = newloc
+                position()
+    #hide
+    elif action=="hide":
+        if loc =="Roof":
+            print("You hide behind a ventilation shaft, but to your demise you realise that the dragon also has x-ray vision. Maybe you should come up with another plan.")
+        else:
+            print("There is nothing to hide from.")
+    # get
+    elif (action=="get" or action=="take"):
+        if target == "":
+            print("Please enter a target.")
+        elif target =="sedatives" or target =="sedative" or target=="burana" or target=="medicine" or target=="painkillers" or target=="pills":
+            target="sedatives"
+            success = get_target(target)
+            target=""
+        else:
+            success = get_target(target)
+            target=""
+
+    # drop
+    elif action=="drop":
+        if target == "":
+            print("Please enter a target.")
+        else:    
+            success = drop_target(target, loc)
+            target = ""
+
+    # inventory
+    elif action=="inventory" or action=="i":
+        inventory()
+    #use 
+    elif action =="use":
+        if target == "crowbar":
+            if crowbaruse == 0:
+                use()
+                target = ""
+            else:
+                print("You've already opened the door.")
+        elif target == "repairkit" or target == "repair kit" or target == "repair" or target =="kit":
+            target = "kit"
+            if repairkituse == 0:
+                use ()
+                target = ""
+            else:
+                print("You've already repaired the elevator.")
+        else:
+            print("Please enter a valid target.")
+    #give
+    elif action == "give":
+        if target == "poison":
+            if poisonuse == 0:
+                give()
+                target=""
+            else:
+                print("You already tried using the poison.")
+        elif target =="medicine" or target=="sedative" or target=="burana" or target=="painkillers" or target=="sedatives" or target =="pills":
+            target = "Sedatives"
+            if medicineuse == 0:
+                give()
+                target=""
+            else:
+                print("You've ran out of painkillers.")
+        else:
+            print("Please enter a valid target")
+    # open
+    elif (action=="open"):
+        if target =="window" and loc == "Room1" and windowopen == 0:
+            success = open_window()
+            target = ""
+            windowopen = 1
+        elif target == "door" and loc == "House":
+                    open_door()
+                    action="end"
+        elif target == "" or target !="window" and target != "door":
+            print("Please enter a valid target.")
+        elif windowopen != 0:
+            print("You already opened the window")
+            target = ""
+
+    #error messages
+    elif action!="end" and action!="":
+        print("I don't know how to " + action)
+    elif action =="":
+        print("Please enter a command")
+    if loc == "House" and action !="open" and target != "door":
+        print("Someone is knocking heavily on your door.")
+            
+#end
+print("Thanks for playing!")
